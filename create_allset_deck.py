@@ -23,6 +23,7 @@ newDeckCsvPath = compiledDeckDir.joinpath(f"{newDeckName}.csv")
 originalDeckPath = Path('./original_decks/allset.csv')
 rows = []
 repeaterCards = []  # for that player thingy
+sentenceCells = []  # for the sentences HTML
 index = 0
 synth = Mp3Creator()
 
@@ -66,6 +67,7 @@ with open(originalDeckPath, 'r') as csvfile:
             "mp3": f"[sound:{Path(f'{newDeckName}/mp3').joinpath(synth.createFileName(normalizeText(row[0])))}]",
             "data": "{}"
         })
+
         repeaterCards.append({
             "index": index,
             "japanese": normalizeText(row[0]),
@@ -73,6 +75,15 @@ with open(originalDeckPath, 'r') as csvfile:
             "fileName": synth.createFileName(normalizeText(row[0]))
         })
         index += 1
+
+        sentenceCell = normalizeText(f"<ruby>{row[0]}<rt>{row[1]}</rt></ruby>")
+        sentenceCells.append(f"""
+          <tr>
+            <td class="big">{sentenceCell}</td>
+            <td class="small">{row[2]}</td>
+            <td class="small"><a href='{row[7]}'>src</a></td>
+          </tr>
+        """)
 
 # Anki CSV
 with open(newDeckCsvPath, 'w', newline='') as csvfile:
@@ -87,3 +98,44 @@ with open(newDeckCsvPath, 'w', newline='') as csvfile:
 outputJson = f"var sentences = {json.dumps(repeaterCards, ensure_ascii=False)}"
 outputFile = compiledDeckDir.joinpath('meknow-data.js')
 Utils.writeToFile(outputFile, outputJson, f"Failed to write {outputFile}")
+
+# Sentences HTML
+html = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AllSet</title>
+</head>
+<style>
+  body {
+    font-family: "DejaVu Sans";
+  }
+  table {
+    min-width: 800px;
+    border-spacing: 0;
+  }
+  td {
+    border: 1px #ccc solid;
+    padding: 5px;
+  }
+  .big {
+      font-size: 1.4em;
+  }
+  .small {
+      font-size: 1em;
+  }
+</style>
+<body>
+
+<table>
+  ###CELLS###
+</table>
+
+</body>
+</html>
+"""
+html = html.replace('###CELLS###', "".join(sentenceCells))
+outputFile = compiledDeckDir.joinpath('sentences.html')
+Utils.writeToFile(outputFile, html, f"Failed to write {outputFile}")
+
