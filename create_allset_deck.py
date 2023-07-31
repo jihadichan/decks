@@ -1,7 +1,9 @@
 import csv
+import json
 import re
 from pathlib import Path, PurePath
 
+from src import Utils
 from src.Mp3Creator import Mp3Creator
 
 """
@@ -20,6 +22,8 @@ compiledDeckMp3Dir = compiledDeckDir.joinpath("mp3")
 newDeckCsvPath = compiledDeckDir.joinpath(f"{newDeckName}.csv")
 originalDeckPath = Path('./original_decks/allset.csv')
 rows = []
+repeaterCards = []  # for that player thingy
+index = 0
 synth = Mp3Creator()
 
 if not Path(compiledDeckDir).exists():
@@ -62,8 +66,15 @@ with open(originalDeckPath, 'r') as csvfile:
             "mp3": f"[sound:{Path(f'{newDeckName}/mp3').joinpath(synth.createFileName(normalizeText(row[0])))}]",
             "data": "{}"
         })
+        repeaterCards.append({
+            "index": index,
+            "japanese": normalizeText(row[0]),
+            "english": row[2],
+            "fileName": synth.createFileName(normalizeText(row[0]))
+        })
+        index += 1
 
-
+# Anki CSV
 with open(newDeckCsvPath, 'w', newline='') as csvfile:
     writer = csv.writer(csvfile, delimiter='\t')
 
@@ -71,3 +82,8 @@ with open(newDeckCsvPath, 'w', newline='') as csvfile:
         writer.writerow([row['sentence'], row['display'], row['notes'], row['source'], row['mp3'], row['data']])
 
     print(f"Total written rows: {len(rows)}")
+
+# Repeater JSON
+outputJson = f"var sentences = {json.dumps(repeaterCards, ensure_ascii=False)}"
+outputFile = compiledDeckDir.joinpath('meknow-data.js')
+Utils.writeToFile(outputFile, outputJson, f"Failed to write {outputFile}")
